@@ -1,8 +1,8 @@
 1
-00:00:00,000 --> 00:00:06,000
- c'est une vidéo pour tester les sous-titres et ce que les sous-titres marchent fonctionnent
+00:00:00,000 --> 00:00:08,000
+ This video is to test the software and what the software works exactly or not.
 
 2
-00:00:06,000 --> 00:00:12,500
- correctement ou pas c'est pour ça que je fais la vidéo
+00:00:08,000 --> 00:00:13,000
+ That's why I make the video.
 

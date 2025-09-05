@@ -6,6 +6,7 @@ import shutil
 import threading
 import time
 from googletrans import Translator
+import asyncio
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key" 
@@ -59,23 +60,25 @@ def delete_file_after_delay(file_path, delay):
     threading.Thread(target=delete_file).start()
 
 
-def translate_srt_file(original_srt_path, translated_srt_path, target_language):
-    translator = Translator()  # version synchrone
+async def translate_srt_file(original_srt_path, translated_srt_path, target_language):
+    translator = Translator()
 
     with open(original_srt_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     translated_lines = []
     for line in lines:
-        if '-->' not in line and line.strip():
-            # Traduction synchrone
-            translated_line = translator.translate(line, dest=target_language).text
-            translated_lines.append(translated_line + "\n")
+        if '-->' not in line and line.strip() and not line.strip().isdigit():
+            # Traduction asynchrone
+            translated_line_obj = await translator.translate(line, dest=target_language)
+            translated_lines.append(translated_line_obj.text + "\n")
         else:
             translated_lines.append(line)
 
     with open(translated_srt_path, 'w', encoding='utf-8') as f:
         f.writelines(translated_lines)
+
+
 
 #########################################################################################################
 #########################################################################################################
@@ -160,7 +163,7 @@ def upload_file():
     # Si une langue de traduction est spécifiée, traduire le fichier SRT
     if translate_language:
         translated_srt_path = os.path.join(UPLOAD_FOLDER, "srt_translated.srt")
-        translate_srt_file(srt_path, translated_srt_path, translate_language)
+        asyncio.run(translate_srt_file(srt_path, translated_srt_path, translate_language))
         srt_to_use = translated_srt_path  
     else:
         srt_to_use = srt_path

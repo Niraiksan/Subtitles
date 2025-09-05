@@ -60,14 +60,15 @@ def delete_file_after_delay(file_path, delay):
 
 
 def translate_srt_file(original_srt_path, translated_srt_path, target_language):
-    translator = Translator()
-    
+    translator = Translator()  # version synchrone
+
     with open(original_srt_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     translated_lines = []
     for line in lines:
         if '-->' not in line and line.strip():
+            # Traduction synchrone
             translated_line = translator.translate(line, dest=target_language).text
             translated_lines.append(translated_line + "\n")
         else:

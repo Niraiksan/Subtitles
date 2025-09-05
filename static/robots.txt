@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://simulateur-pret-6fji.onrender.com/sitemap.xml

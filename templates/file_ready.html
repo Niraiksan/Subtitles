@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Ready</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+            max-width: 600px;
+        }
+        .countdown-text {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container shadow p-4 rounded bg-white text-center">
+        <h1 class="mb-4">Votre vidéo est prête !</h1>
+        <p>Le fichier vidéo <strong>{{ output_file }}</strong> a été généré avec succès.</p>
+        <p class="text-danger">Attention : le fichier sera automatiquement supprimé dans <span id="countdown" class="countdown-text">30</span> secondes.</p>
+        <div class="mt-4">
+            <a href="/download/{{ output_file }}" download>
+                <button class="btn btn-success w-100 mb-3">Télécharger la vidéo</button>
+            </a>
+            <a href="/">
+                <button class="btn btn-secondary w-100">Retour à l'accueil</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Compte à rebours de 30 secondes
+        let countdownElement = document.getElementById('countdown');
+        let timeLeft = 30;
+
+        function updateCountdown() {
+            if (timeLeft > 0) {
+                countdownElement.textContent = timeLeft;
+                timeLeft--;
+            } else {
+                countdownElement.textContent = "0";
+                // Ici, vous pouvez ajouter du code pour informer l'utilisateur que le fichier va être supprimé si nécessaire
+            }
+        }
+
+        // Mise à jour du décompte toutes les secondes
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>

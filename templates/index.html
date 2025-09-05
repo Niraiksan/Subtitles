@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtitle Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            max-width: 600px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-outline-primary {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+        }
+        .preview-screen {
+            width: 100%; /* Full width of modal */
+            max-width: 300px; /* Simulated video frame size */
+            aspect-ratio: 16 / 9; /* 16:9 ratio by default */
+            position: relative;
+            border: 2px solid #ccc;
+            background: linear-gradient(35deg, rgba(0, 123, 255, 0.7), rgba(0, 255, 123, 0.7)); /* Dégradé de bleu et vert clair */
+            background-size: 400% 400%; /* Pour un dégradé fluide */
+            /*animation: gradientAnimation 8s ease infinite;*/ /* Animation pour rendre le dégradé dynamique */
+            margin: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            font-family: 'Arial', sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Ombre douce autour du cadre */
+            border-radius: 4px; /* Coins arrondis */
+        }
+
+        @keyframes gradientAnimation {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .preview-screen.vertical {
+            max-width: 169px; /* Taille adaptée pour l'écran vertical */
+            aspect-ratio: 9 / 16; /* Format vertical 9:16 */
+        }
+        
+        .preview-text {
+            position: absolute;
+            bottom: 10%;
+            width: 90%; /* Centered text area */
+            left: 5%;
+            text-align: center;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: var(--font-size, 12px);
+            font-family: var(--font-family, Arial);
+        }
+    </style>
+</head>
+<body>
+    <div class="container shadow p-4 rounded bg-white">
+        <h1 class="text-center mb-4">Subtitle Generator</h1>
+        
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-danger">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+        {% endwith %}
+        
+        <p class="text-center text-danger">* Vidéo limitée à 3 minutes et 20 Mo maximum.</p>
+        
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="video" class="form-label">Video File</label>
+                <input type="file" class="form-control" name="video" id="video" required>
+            </div>
+            <div class="mb-3">
+                <label for="output_file" class="form-label">Output File Name</label>
+                <input type="text" class="form-control" name="output_file" id="output_file" required>
+            </div>
+            <div class="mb-3">
+                <label for="model_type" class="form-label">Model Type</label>
+                <select class="form-select" name="model_type" id="model_type">
+                    <option value="base">Base</option>
+                    <option value="tiny">Tiny</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="language" class="form-label">Language</label>
+                <select class="form-select" name="language" id="language">
+                    <option value="" selected>Auto-detect (default)</option>
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                    <option value="es">Spanish</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="translate_language" class="form-label">Translate To</label>
+                <select class="form-select" name="translate_language" id="translate_language">
+                    <option value="" selected>None (No Translation)</option>
+                    <option value="fr">French</option>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                </select>
+            </div>
+            <div class="d-flex justify-content-start">
+                <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#styleModal">
+                    <i class="bi bi-pencil-square me-2"></i> Subtitle Text Style
+                </button>
+            </div>
+
+            <input type="hidden" name="selected_font_name" id="selected_font_name">
+            <input type="hidden" name="selected_font_size" id="selected_font_size">
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary w-100">Generate Subtitle</button>
+            </div>
+
+            <div class="progress mt-3">
+                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal for Subtitle Text Style -->
+    <div class="modal fade" id="styleModal" tabindex="-1" aria-labelledby="styleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="styleModalLabel">Subtitle Text Style</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="font-name" class="form-label">Font Name</label>
+                        <select id="font-name" name="font_name" class="form-select">
+                            <option value="Arial">Arial</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Tahoma">Tahoma</option>
+                            <option value="Trebuchet MS">Trebuchet MS</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Palatino Linotype">Palatino Linotype</option>
+                            <option value="Comic Sans MS">Comic Sans MS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="font_size" class="form-label">Font Size</label>
+                        <input type="number" class="form-control" name="font_size" id="font_size" value="12">
+                    </div>
+
+                    <!-- Ajouter des boutons radio pour choisir l'orientation de l'écran -->
+                    <div class="mb-3">
+                        <label class="form-label">Orientation de l'écran</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="screen_orientation" id="screen_horizontal" value="horizontal" checked>
+                            <label class="form-check-label" for="screen_horizontal">Horizontal</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="screen_orientation" id="screen_vertical" value="vertical">
+                            <label class="form-check-label" for="screen_vertical">Vertical</label>
+                        </div>
+                    </div>
+
+                    <div class="preview-screen">
+                        <div class="preview-text" id="subtitlePreview">
+                            Subtitle Preview
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fontNameInput = document.getElementById('font-name');
+        const fontSizeInput = document.getElementById('font_size');
+        const previewText = document.getElementById('subtitlePreview');
+        const selectedFontName = document.getElementById('selected_font_name');
+        const selectedFontSize = document.getElementById('selected_font_size');
+        const screenOrientationInputs = document.getElementsByName('screen_orientation');
+        const previewScreen = document.querySelector('.preview-screen'); // Conteneur de la prévisualisation
+
+        // Mettre à jour la taille de la prévisualisation en fonction de l'orientation choisie
+        // Mettre à jour la prévisualisation en fonction de l'orientation
+        function updateOrientation() {
+            const selectedOrientation = document.querySelector('input[name="screen_orientation"]:checked').value;
+            
+            // Mise à jour de la classe en fonction de l'orientation
+            if (selectedOrientation === 'horizontal') {
+                previewScreen.classList.remove('vertical');
+                previewScreen.style.maxWidth = '300px';
+                previewScreen.style.aspectRatio = '16 / 9'; // Format horizontal 16:9
+            } else {
+                previewScreen.classList.add('vertical');
+                previewScreen.style.maxWidth = '169px';
+                previewScreen.style.aspectRatio = '9 / 16'; // Format vertical 9:16
+            }
+        }
+
+        // Met à jour la prévisualisation des sous-titres (police et taille)
+        function updatePreview() {
+            previewText.style.fontFamily = fontNameInput.value || 'Arial';
+            previewText.style.fontSize = `${fontSizeInput.value || 12}px`;
+            selectedFontName.value = fontNameInput.value;
+            selectedFontSize.value = fontSizeInput.value;
+        }
+
+        // Écouter les changements dans les boutons radio d'orientation
+        screenOrientationInputs.forEach(input => {
+            input.addEventListener('change', updateOrientation);
+        });
+
+        // Écouter les changements de police et de taille
+        fontNameInput.addEventListener('input', updatePreview);
+        fontSizeInput.addEventListener('input', updatePreview);
+
+        // Initialiser la prévisualisation et l'orientation par défaut
+        updatePreview();
+        updateOrientation();
+    </script>
+
+    <script>
+        function checkProgress() {
+            fetch('/progress')
+                .then(response => response.json())
+                .then(data => {
+                    let progress = data.progress;
+                    let progressBar = document.getElementById('progress-bar');
+        
+                    progressBar.style.width = progress + "%";
+                    progressBar.setAttribute("aria-valuenow", progress);
+                    progressBar.innerText = progress + "%";
+        
+                    if (progress < 100) {
+                        setTimeout(checkProgress, 2000);  // Vérifier toutes les 2 secondes
+                    }
+                })
+                .catch(error => console.error('Erreur de récupération de la progression:', error));
+        }
+        
+        // Lancer le suivi dès qu'on soumet le formulaire
+        document.querySelector("form").addEventListener("submit", function() {
+            document.getElementById('progress-bar').style.width = "0%";  // Réinitialise la barre
+            checkProgress();
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
